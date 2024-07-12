@@ -80,7 +80,7 @@ namespace inventory.Controllers
             _context.InventoryItems.Add(inventoryItem);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetInventoryItem", new { id = inventoryItem.Id }, inventoryItem);
+            return CreatedAtAction(nameof(GetInventoryItem), new { id = inventoryItem.Id }, inventoryItem);
         }
 
         // DELETE: api/InventoryItems/5
