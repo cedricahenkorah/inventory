@@ -22,14 +22,14 @@ namespace inventory.Controllers
 
         // GET: api/InventoryItems
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<InventoryItem>>> GetInventoryItems()
+        public async Task<ActionResult<IEnumerable<InventoryItemDTO>>> GetInventoryItems()
         {
-            return await _context.InventoryItems.ToListAsync();
+            return await _context.InventoryItems.Select(x => ItemToDTO(x)).ToListAsync();
         }
 
         // GET: api/InventoryItems/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<InventoryItem>> GetInventoryItem(int id)
+        public async Task<ActionResult<InventoryItemDTO>> GetInventoryItem(int id)
         {
             var inventoryItem = await _context.InventoryItems.FindAsync(id);
 
@@ -38,35 +38,37 @@ namespace inventory.Controllers
                 return NotFound();
             }
 
-            return inventoryItem;
+            return ItemToDTO(inventoryItem);
         }
 
         // PUT: api/InventoryItems/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutInventoryItem(int id, InventoryItem inventoryItem)
+        public async Task<IActionResult> PutInventoryItem(int id, InventoryItemDTO inventoryItemDTO)
         {
-            if (id != inventoryItem.Id)
+            if (id != inventoryItemDTO.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(inventoryItem).State = EntityState.Modified;
+            var inventoryItem = await _context.InventoryItems.FindAsync(id);
+
+            if (inventoryItem == null)
+            {
+                return NotFound();
+            }
+
+            inventoryItem.Name = inventoryItemDTO.Name;
+            inventoryItem.Quantity = inventoryItemDTO.Quantity;
+            inventoryItem.IsOutOfStock = inventoryItemDTO.IsOutOfStock;
 
             try
             {
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException) when (!InventoryItemExists(id))
             {
-                if (!InventoryItemExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return NotFound();
             }
 
             return NoContent();
@@ -75,12 +77,19 @@ namespace inventory.Controllers
         // POST: api/InventoryItems
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<InventoryItem>> PostInventoryItem(InventoryItem inventoryItem)
+        public async Task<ActionResult<InventoryItemDTO>> PostInventoryItem(InventoryItemDTO inventoryItemDTO)
         {
+            var inventoryItem = new InventoryItem
+            {
+                Name = inventoryItemDTO.Name,
+                Quantity = inventoryItemDTO.Quantity,
+                IsOutOfStock = inventoryItemDTO.IsOutOfStock
+            };
+
             _context.InventoryItems.Add(inventoryItem);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetInventoryItem), new { id = inventoryItem.Id }, inventoryItem);
+            return CreatedAtAction(nameof(GetInventoryItem), new { id = inventoryItem.Id }, ItemToDTO(inventoryItem));
         }
 
         // DELETE: api/InventoryItems/5
@@ -103,5 +112,14 @@ namespace inventory.Controllers
         {
             return _context.InventoryItems.Any(e => e.Id == id);
         }
+
+        private static InventoryItemDTO ItemToDTO(InventoryItem item) =>
+            new InventoryItemDTO
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Quantity = item.Quantity,
+                IsOutOfStock = item.IsOutOfStock
+            };
     }
 }
