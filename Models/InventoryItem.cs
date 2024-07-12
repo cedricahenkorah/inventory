@@ -1,6 +1,6 @@
 namespace inventory.Models;
 
-public class Inventory
+public class InventoryItem
 {
     public int Id { get; set; }
     public string? Name { get; set; }
